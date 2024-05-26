@@ -69,7 +69,7 @@ class EqualWeightPortfolio:
         number_of_assets = len(assets)
         equal_weights = 1.0 / number_of_assets
         for date in df.index:
-            self.portfolio_weights.loc[date, assets] = equal_weight
+            self.portfolio_weights.loc[date, assets] = equal_weights
         """
         TODO: Complete Task 1 Above
         """
@@ -120,6 +120,11 @@ class RiskParityPortfolio:
         """
         TODO: Complete Task 2 Below
         """
+        for date in range(self.lookback+1, len(df)):
+            window = df_returns[assets].iloc[date - self.lookback: date]
+            inverse_volatility = 1 / window.std()
+            normalized_weights = inverse_volatility / inverse_volatility.sum()
+            self.portfolio_weights.loc[df.index[date], assets] = normalized_weights
 
         """
         TODO: Complete Task 2 Above
@@ -197,6 +202,20 @@ class MeanVariancePortfolio:
                 # NOTE: You can modify the following code
                 w = model.addMVar(n, name="w", ub=1)
                 model.setObjective(w.sum(), gp.GRB.MAXIMIZE)
+
+                # Add constraints and objective function for mean-variance optimization
+
+                # Constraint: Sum of weights = 1 (no leverage)
+                model.addConstr(w.sum() == 1, "budget")
+
+                # Constraints: Weights >= 0 (long-only constraint)
+                for weight in w:
+                    model.addConstr(weight >= 0, "long_only")
+
+                # Objective: Maximize risk-adjusted return
+                # Note: Gurobi maximizes by default, so we minimize -objective for maximization
+                objective = mu @ w - (gamma / 2) * (w @ Sigma @ w)
+                model.setObjective(-objective, gp.GRB.MINIMIZE)
 
                 """
                 TODO: Complete Task 3 Below

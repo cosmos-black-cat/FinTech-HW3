@@ -74,6 +74,42 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
+        # Parameters
+        target_variance_threshold = 0.05  # Example threshold, adjust based on desired risk level
+
+        # Calculate annualized expected returns and covariance matrix from the recent returns
+        annual_returns = self.returns.mean() * 252
+        cov_matrix = self.returns.cov() * 252
+
+        # Set the number of assets and create asset names list
+        asset_names = [asset for asset in assets if asset != self.exclude]
+
+        # Optimization model
+        m = gp.Model("portfolio_optimization")
+
+        # Decision variables - weights of assets in portfolio
+        weights = m.addVars(asset_names, name="w", lb=0.0)
+
+        # Portfolio return and variance
+        portfolio_return = gp.quicksum(weights[asset] * annual_returns[asset] for asset in asset_names)
+        portfolio_variance = gp.quicksum(weights[asset] * weights[other] * cov_matrix.loc[asset, other]
+                                         for asset in asset_names for other in asset_names)
+
+        m.setObjective(portfolio_return, gp.GRB.MAXIMIZE)  # Objective is to maximize return
+
+        # Constraints
+        m.addConstr(weights.sum() == 1, "budget")  # The sum of weights is 1
+        m.addConstr(portfolio_variance <= target_variance_threshold, "max_variance")  # Variance threshold constraint
+
+        # Optimize the model
+        m.optimize()
+
+        # Update portfolio weights based on optimization outcome
+        for asset in self.price.columns:
+            if asset in weights:
+                self.portfolio_weights.loc[:, asset] = weights[asset].X
+            else:
+                self.portfolio_weights.loc[:, asset] = 0
 
         """
         TODO: Complete Task 4 Above
