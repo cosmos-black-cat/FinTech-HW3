@@ -66,7 +66,10 @@ class EqualWeightPortfolio:
         """
         TODO: Complete Task 1 Below
         """
-
+        number_of_assets = len(assets)
+        equal_weights = 1.0 / number_of_assets
+        for date in df.index:
+            self.portfolio_weights.loc[date, assets] = equal_weight
         """
         TODO: Complete Task 1 Above
         """
